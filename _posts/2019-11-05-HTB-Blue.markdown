@@ -1,0 +1,63 @@
+---
+layout: post
+title:  "Hack The Box Blue writeup (w/o Metasploit)"
+date:   2019-11-05 12:00:00 -0400
+featured_img: "/assets/blue-10.10.10.40.png"
+categories: blue HTB
+---
+
+10.10.10.40 - Blue
+
+![Blue](/assets/blue-10.10.10.40.png)
+
+`nmap -A 10.10.10.40`
+
+We have Windows 7 Pro 7601 SP1
+
+ports 135 445 are open
+
+1/We can try to scan it for vulns with nmap
+
+`nmap --script vuln -p 445 10.10.10.40`
+
+Looks like we have Eternal Blue here: MS17-010
+
+We can check what we have on SMB
+
+`smbclient -L 10.10.10.40`
+
+Try accessing Users share
+
+`smbclient //10.10.10.40/Users`
+
+2/This share is accessible without password.
+
+Let's copy this repo
+
+`https://github.com/worawit/MS17-010`
+
+will run checker.py
+
+3/All named pipes are denied. Mist eternal blue scripts won't work here.
+
+Searching eternal blue and Windows version 7601 gives us this
+
+`https://www.exploit-db.com/exploits/42315`
+
+To use the script we need two things:
+
+1. prepare a reverse shell
+
+2. edit script for our needs:
+
+  - edit username variable to use share without the password (guest authentication)
+
+  - specify location for our reverse shell that we generated
+
+4/Let's run the script
+
+While listenning on port 4444 locally
+
+5/We got shell and we are nt authority.
+
+Now we can get root flag
