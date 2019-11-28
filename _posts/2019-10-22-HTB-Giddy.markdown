@@ -77,7 +77,6 @@ So, let's start smbserver.py that will listen on our Kali machine
 
 ![listen with smbserver.py](/assets/smbserver-10.10.10.104.png)
 
-Alternatively we can do it with responder
 
 request:
 
@@ -87,7 +86,7 @@ listen with smbserver.py
 
 `/root/impacket/examples/smbserver.py share ~/emptyfolder/`
 
-Alternatively listen with Responder:
+Alternatively we can listen with responder:
 
 `./Responder.py -I tun0 -w -r -f`
 
@@ -162,6 +161,10 @@ There is a tool called phantom evasion ([https://github.com/oddcod3/Phantom-Evas
 will help obfuscate code of our reverse shell so antivirus can't recognize and block it.
 
 ![phantom1](/assets/phantom1-10.10.10.104.png)
+
+Start the script
+
+/Phantom-Evasion# `python phantom-evasion.py`
 
 We will use following options.
 1 windows modules ,
