@@ -2,15 +2,17 @@
 layout: post
 title:  "Hack The Box Blue writeup (w/o Metasploit)"
 date:   2019-11-05 12:00:00 -0400
-featured_img: "/assets/blue-10.10.10.40.png"
+featured_img: "/assets/blue/blue-10.10.10.40.png"
 categories: blue HTB
 ---
 
 10.10.10.40 - Blue
 
-![Blue](/assets/blue-10.10.10.40.png)
+![Blue](/assets/blue/blue-10.10.10.40.png)
 
 `nmap -A 10.10.10.40`
+
+![nmap](/assets/blue/nmap-10.10.10.40.png)
 
 We have Windows 7 Pro 7601 SP1
 
@@ -20,15 +22,21 @@ ports 135 445 are open
 
 `nmap --script vuln -p 445 10.10.10.40`
 
+![Nmap 445](/assets/blue/nmap-smb-10.10.10.40.png)
+
 Looks like we have Eternal Blue here: MS17-010
 
 We can check what we have on SMB
 
 `smbclient -L 10.10.10.40`
 
+![Smbclient](/assets/blue/smbclient-10.10.10.40.png)
+
 Try accessing Users share
 
 `smbclient //10.10.10.40/Users`
+
+![Smbclient shares](/assets/blue/smbclient-shares-10.10.10.40.png)
 
 2/This share is accessible without password.
 
@@ -37,6 +45,8 @@ Let's copy this repo
 `https://github.com/worawit/MS17-010`
 
 will run checker.py
+
+![chercker](/assets/blue/checker-10.10.10.40.png)
 
 3/All named pipes are denied. Mist eternal blue scripts won't work here.
 
@@ -47,17 +57,30 @@ Searching eternal blue and Windows version 7601 gives us this
 To use the script we need two things:
 
 1. prepare a reverse shell
+![Msfvenom](/assets/blue/msfvenom-10.10.10.40.png)
 
 2. edit script for our needs:
 
   - edit username variable to use share without the password (guest authentication)
+  ![File edit 1](/assets/blue/file-edit1-10.10.10.40.png)
 
   - specify location for our reverse shell that we generated
+  ![File edit 2](/assets/blue/file-edit2-10.10.10.40.png)
 
 4/Let's run the script
 
+![Script](/assets/blue/script-10.10.10.40.png)
+
 While listenning on port 4444 locally
+
+![Listen](/assets/blue/listen-10.10.10.40.png)
 
 5/We got shell and we are nt authority.
 
+![root](/assets/blue/root-10.10.10.40.png)
+
 Now we can get root flag
+
+We can also grab user flag
+
+![User](/assets/blue/user-10.10.10.40.png)
