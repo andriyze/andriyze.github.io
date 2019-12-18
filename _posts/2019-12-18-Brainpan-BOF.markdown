@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Vulnhub Brainpan writeup (OSCP guide to BoF)"
-date:   2019-12-18 13:34:14 -0400
+date:   2019-12-18 17:34:14 -0400
 featured_img: "/assets/brainpan.png"
 categories: BoF oscp
 ---
