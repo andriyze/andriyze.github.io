@@ -12,7 +12,7 @@ categories: blue HTB
 
 `nmap -A 10.10.10.40`
 
-![nmap](/assets/blue/nmap-10.10.10.40.png)
+![nmap](/assets/blue/nmap-10.10.10.40.PNG)
 
 We have Windows 7 Pro 7601 SP1
 
@@ -22,7 +22,7 @@ ports 135 445 are open
 
 `nmap --script vuln -p 445 10.10.10.40`
 
-![Nmap 445](/assets/blue/nmap-smb-10.10.10.40.png)
+![Nmap 445](/assets/blue/nmap-smb-10.10.10.40.PNG)
 
 Looks like we have Eternal Blue here: MS17-010
 
@@ -30,13 +30,13 @@ We can check what we have on SMB
 
 `smbclient -L 10.10.10.40`
 
-![Smbclient](/assets/blue/smbclient-10.10.10.40.png)
+![Smbclient](/assets/blue/smbclient-10.10.10.40.PNG)
 
 Try accessing Users share
 
 `smbclient //10.10.10.40/Users`
 
-![Smbclient shares](/assets/blue/smbclient-shares-10.10.10.40.png)
+![Smbclient shares](/assets/blue/smbclient-shares-10.10.10.40.PNG)
 
 2/This share is accessible without password.
 
@@ -46,7 +46,7 @@ Let's copy this repo
 
 will run checker.py
 
-![chercker](/assets/blue/checker-10.10.10.40.png)
+![chercker](/assets/blue/checker-10.10.10.40.PNG)
 
 3/All named pipes are denied. Mist eternal blue scripts won't work here.
 
@@ -57,19 +57,19 @@ Searching eternal blue and Windows version 7601 gives us this
 To use the script we need two things:
 
 1. prepare a reverse shell
-![Msfvenom](/assets/blue/msfvenom-10.10.10.40.png)
+![Msfvenom](/assets/blue/msfvenom-10.10.10.40.PNG)
 
 2. edit script for our needs:
 
   - edit username variable to use share without the password (guest authentication)
-  ![File edit 1](/assets/blue/file-edit1-10.10.10.40.png)
+  ![File edit 1](/assets/blue/file-edit1-10.10.10.40.PNG)
 
   - specify location for our reverse shell that we generated
-  ![File edit 2](/assets/blue/file-edit2-10.10.10.40.png)
+  ![File edit 2](/assets/blue/file-edit2-10.10.10.40.PNG)
 
 4/Let's run the script
 
-![Script](/assets/blue/script-10.10.10.40.png)
+![Script](/assets/blue/script-10.10.10.40.PNG)
 
 While listenning on port 4444 locally
 
@@ -77,7 +77,7 @@ While listenning on port 4444 locally
 
 5/We got shell and we are nt authority.
 
-![root](/assets/blue/root-10.10.10.40.png)
+![root](/assets/blue/root-10.10.10.40.PNG)
 
 Now we can get root flag
 
