@@ -1,0 +1,54 @@
+---
+layout: post
+title:  "Sensitive data in logs"
+date:   2021-02-16 19:56:05 -0400
+featured_img: "/assets/log-scan/log-scan.png"
+categories: Bart HTB Windows
+---
+
+When was the last time you checked your logs for sensitive data?
+
+![Log-Scan](/assets/log-scan/log-scan2.png)
+
+Maybe never, only you know that. 
+
+## Problem
+Log files may be full of very usefull information. Useful for you ... and well for bad actors as well. Those could contain passwords, secret keys, tokens, PII and so on.
+
+It is not only a best practice to not have sensitive data in logs but also a requiment that you probably have to comply with.
+
+## Solution
+To solve this problem I created a simple python script that uses regex patterns under the hood. It will check logs for passwords and various secrets.
+
+You can find it here: [Log-Scan][Log-Scan-Repo]
+
+Simply clone the repo to your machine. And run the script `python3 log-scan.py -l log.log`
+
+There is a [patterns.txt][patterns_file] file that contains varios regex pattersn like `PASSWORD[=:](.*)` or `secret[=:](.*)`. You can add other patterns as you wish.
+
+If any sensitive data is found `results` folder will be created with json result file that will show all the findings.
+
+{% highlight shell %}
+{
+    "file": "log.log",
+    "findings": [
+        {
+            "pattern": "assword[=:](.*)\n",
+            "match": "assword=\"admin\" user=\"admin\" role=\"Administrator\"\n",
+            "line number": "6",
+            "line": "password=\"admin\" user=\"admin\" role=\"Administrator\"\n"
+        },
+        {
+            "pattern": "token[=:](.*)\n",
+            "match": "token=\"2sd43dh4kf54e56f5lv4xsf6546\"\n",
+            "line number": "29",
+            "line": "file=\"adword.sh\" token=\"2sd43dh4kf54e56f5lv4xsf6546\" action=\"send\"\n"
+        }
+    ]
+}
+{% endhighlight %}
+
+
+
+[Log-Scan-Repo]: https://github.com/andriyze/log-scan
+[patterns_file]: https://github.com/andriyze/log-scan/blob/main/patterns.txt
