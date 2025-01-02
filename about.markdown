@@ -4,4 +4,4 @@ title: About
 permalink: /about/
 ---
 
-Thanks for checking out my blog. We'll try to crack machines and discuss on how it worked. [andriyze.github.io](https://andriyze.github.io)
+Please check [www.a3sec.net](https://www.a3sec.net/)
