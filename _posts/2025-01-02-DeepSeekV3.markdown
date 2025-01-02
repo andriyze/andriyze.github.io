@@ -1,0 +1,74 @@
+---
+layout: post
+title:  "DeepSeek V3: challenger of OpenAI and Anthropic"
+date:   2025-01-12 18:22:20 -0400
+featured_img: "/assets/juice-shop/deepseek.png"
+categories: AI
+---
+
+## Overview
+DeepSeek V3 stands out as a powerful open-source model that competes with leading AI solutions, particularly in coding tasks. Here's what makes it noteworthy:
+
+## Key Features
+- **Performance**: Demonstrates capabilities comparable to Claude 3.5 Sonnet, particularly excelling in coding-related tasks.
+- **Technical Specifications**: Boasts 671B parameters, making it one of the larger open-source models available in the market.
+- **Deployment Options**:
+  - Can be self-hosted on a cluster of 8 x M4 Pro Mac Minis (64GB each, 512GB total memory) [Exolab blog](https://blog.exolabs.net/day-2/).
+  - Available through API access for those preferring cloud solutions.
+
+## Cost-Effectiveness
+- **API Pricing**: Extremely competitive at $0.00014 per 1M tokens. Check out the [pricing details](https://api-docs.deepseek.com/quick_start/pricing/) for more information.
+- **Real-World Usage**: Typical extended testing sessions cost around $0.02, making it highly accessible for development and experimentation.
+
+## Considerations
+- **Data Privacy**: Users should be aware that data processed through the API may be accessible to Chinese authorities.
+- **Self-Hosting**: Offers complete data privacy control but requires significant hardware investment.
+
+## Setting Up DEV Environment
+To enhance your development workflow with DeepSeek V3, you can integrate it with tools like [Continue.dev](https://continue.dev) or [Cursor](https://cursor.sh). Both tools allow you to leverage DeepSeek V3’s capabilities directly in your coding environment. Here’s how to set it up:
+
+### Step 1: Get Your DeepSeek API Key
+Before you begin, you’ll need an API key from DeepSeek. Follow these steps:
+1. Visit the [DeepSeek web site](https://deepseek.com/).
+2. Sign up or log in to your DeepSeek account.
+3. Top up your account (minimum $2) with a credit card or PayPal.
+4. Generate an API key from the dashboard.
+
+### Step 2: Using Continue.dev with DeepSeek V3
+[Continue.dev](https://continue.dev) natively supports DeepSeek API keys, making it easy to integrate. Here’s how to set it up:
+1. **Install Continue.dev**:
+   - Open VSCode.
+   - Go to the Extensions view (`Ctrl+Shift+X` or `Cmd+Shift+X` on macOS).
+   - Search for "Continue.dev" and install the extension.
+
+2. **Configure Continue.dev**:
+   - Open the Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P` on macOS).
+   - Type `Continue: Setup` and select it.
+   - When prompted for the API key, enter your DeepSeek API key.
+   - Follow the on-screen instructions to complete the setup.
+
+3. **Start Using Continue.dev**:
+   - Once configured, you can use Continue.dev to access DeepSeek V3’s capabilities directly in VSCode.
+   - Use features like code completion, debugging, and more to streamline your workflow.
+
+### Step 3: Using Cursor with DeepSeek V3
+[Cursor](https://cursor.sh) is another powerful IDE that supports DeepSeek V3 by allowing you to replace OpenAI’s endpoint with DeepSeek’s. Here’s how to set it up:
+1. **Install Cursor**:
+   - Download and install Cursor from [cursor.com](https://cursor.com).
+
+2. **Configure Cursor**:
+   - Open Cursor and go to the settings menu.
+   - Locate the AI settings section.
+   - Disable all models
+   - Add new model "deepseek-chat"
+   - Replace the OpenAI endpoint with `https://api.deepseek.com`.
+   - Enter your DeepSeek API key in the API key field.
+   - Test your API key.
+
+3. **Start Using Cursor**:
+   - Once configured, Cursor will use DeepSeek V3 for all AI-powered features.
+   - You can use chat mode in Cursor. Composer mode is not supported.
+
+## Conclusion
+DeepSeek V3 presents an attractive option for developers and organizations looking for a powerful, cost-effective language model, especially those focused on coding applications. The choice between API and self-hosting depends on your specific privacy requirements and infrastructure capabilities.
+
